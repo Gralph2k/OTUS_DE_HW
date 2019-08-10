@@ -77,7 +77,7 @@ try:
     #Search by key
     start_time = time.time()
     queryResult=""
-    for x in range(1000): 
+    for x in range(100): 
         queryResult+=str(get_ltv_by_id(x))+", "
     print("Search by key. Elapsed time: "+str(time.time() - start_time))
     print(queryResult[0:100]+"...")
