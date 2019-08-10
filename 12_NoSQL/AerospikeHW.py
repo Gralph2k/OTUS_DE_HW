@@ -85,7 +85,7 @@ try:
     #Scan by phone number
     start_time = time.time()
     queryResult=""
-    for x in range(5):
+    for x in range(100):
         phone_number = keyToPhoneNumber(x)
         queryResult+=phone_number+" -> "+str(get_ltv_by_phone_scan(phone_number))+", "
     print("Scan by phone number. Elapsed time: "+str(time.time() - start_time))
@@ -94,7 +94,7 @@ try:
     #Query by phone number
     start_time = time.time()
     queryResult=""
-    for x in range(1000):
+    for x in range(100):
         phone_number = keyToPhoneNumber(x)
         queryResult+=phone_number+" -> "+str(get_ltv_by_phone_query(phone_number))+", "
     print("Query by phone number(with index). Elapsed time: "+str(time.time() - start_time))
