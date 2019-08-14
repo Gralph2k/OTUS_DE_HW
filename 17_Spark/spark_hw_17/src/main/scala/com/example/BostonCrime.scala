@@ -1,5 +1,4 @@
-package ru.otus.spark_hw_17
-
+package com.example
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.Window
@@ -8,17 +7,16 @@ import org.apache.spark.sql.functions._
 object BostonCrime {
   def aggregate(sc: SparkSession, crimeDF: DataFrame, offenceCodeDF: DataFrame): DataFrame = {
 
-
     val cachedCrime =
       crimeDF
-      .withColumn("DISTRICT", coalesce(col("DISTRICT"),lit("n/a")))
-      .cache
+        .withColumn("DISTRICT", coalesce(col("DISTRICT"), lit("n/a")))
+        .cache
     cachedCrime.createOrReplaceTempView("crime")
 
     val offenceCode =
       offenceCodeDF
-      .withColumn("CRIME_TYPES", split(col("Name"), " - "))
-      .withColumn("CRIME_TYPE", when(size(col("CRIME_TYPES")).geq(lit(1)), col("CRIME_TYPES").getItem(0)).otherwise(lit("n/a")))
+        .withColumn("CRIME_TYPES", split(col("Name"), " - "))
+        .withColumn("CRIME_TYPE", when(size(col("CRIME_TYPES")).geq(lit(1)), col("CRIME_TYPES").getItem(0)).otherwise(lit("n/a")))
 
     val total =
       cachedCrime
@@ -44,9 +42,9 @@ object BostonCrime {
                   GROUP BY a.DISTRICT
                 """)
 
-    val crime_type =
+    val top_crimes_type =
       cachedCrime.as("a")
-        .join(offenceCode.as("b"), col("a.OFFENSE_CODE") === col("b.CODE") && col("a.OFFENSE_DESCRIPTION") === col("b.NAME"))
+        .join(broadcast(offenceCode).as("b"), col("a.OFFENSE_CODE") === col("b.CODE") && col("a.OFFENSE_DESCRIPTION") === col("b.NAME"))
         .groupBy("DISTRICT", "CRIME_TYPE")
         .agg(count(lit(1)).as("CRIMES"))
         .withColumn("RN", row_number().over(Window.partitionBy("DISTRICT").orderBy(col("CRIMES").desc)))
@@ -63,8 +61,8 @@ object BostonCrime {
 
     total
       .join(median, Seq("DISTRICT"), "LEFT")
-      .join(crime_type, Seq("DISTRICT"), "LEFT")
-      .select("DISTRICT","crimes_total","crimes_monthly", "frequent_crime_types", "lat", "lng")
+      .join(top_crimes_type, Seq("DISTRICT"), "LEFT")
+      .select("DISTRICT", "crimes_total", "crimes_monthly", "frequent_crime_types", "lat", "lng")
       .na.fill(0)
   }
 }

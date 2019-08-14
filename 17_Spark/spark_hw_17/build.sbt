@@ -1,10 +1,9 @@
 // give the user a nice default project!
 
 lazy val root = (project in file(".")).
-
   settings(
     inThisBuild(List(
-      organization := "ru.otus",
+      organization := "com.example",
       scalaVersion := "2.11.8"
     )),
     name := "spark_hw_17",
@@ -27,7 +26,7 @@ lazy val root = (project in file(".")).
 
       "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-      "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % "test" 
+      "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % "test"
     ),
 
     // uses compile classpath for the run task, including "provided" jar (cf http://stackoverflow.com/a/21803413/3827)
@@ -53,4 +52,6 @@ lazy val root = (project in file(".")).
       else
         Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     }
+
+
   )

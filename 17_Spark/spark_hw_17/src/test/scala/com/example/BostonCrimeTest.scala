@@ -1,4 +1,4 @@
-package ru.otus.spark_HW_17
+package com.example
 
 /**
   * A simple test
@@ -7,7 +7,6 @@ package ru.otus.spark_HW_17
 import com.holdenkarau.spark.testing.SharedSparkContext
 import org.apache.spark.sql.SparkSession
 import org.scalatest.FunSuite
-import ru.otus.spark_hw_17.BostonCrime
 
 
 class BostonCrimeTest extends FunSuite with SharedSparkContext {
@@ -18,14 +17,13 @@ class BostonCrimeTest extends FunSuite with SharedSparkContext {
       .appName("Test Boston crimes")
       .getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
-
-    val crimeDF = spark.read.option("header", "true").option("inferSchema", "true").csv("./src/test/scala/ru/otus/spark_hw_17/resources/crime.csv")
-    val offenceCodeDF = spark.read.option("header", "true").option("inferSchema", "true").csv("./src/test/scala/ru/otus/spark_hw_17/resources/offense_codes.csv")
-    val expected = spark.read.option("header", "true").option("inferSchema", "true").csv("./src/test/scala/ru/otus/spark_hw_17/resources/expected.csv")
+    val resourcePath = "./src/test/scala/com/example/resources"
+    val crimeDF = spark.read.option("header", "true").option("inferSchema", "true").csv(resourcePath + "/crime.csv")
+    val offenceCodeDF = spark.read.option("header", "true").option("inferSchema", "true").csv(resourcePath + "/offense_codes.csv")
+    val expected = spark.read.option("header", "true").option("inferSchema", "true").csv(resourcePath + "/expected.csv")
 
     val result = BostonCrime.aggregate(spark, crimeDF, offenceCodeDF).cache()
 
-    //    result.repartition(1).write.mode("overwrite").format("csv").option("header","true").csv("./resources/expected")
     assert(result.except(expected).count().equals(0L))
     assert(expected.except(result).count().equals(0L))
 
@@ -33,5 +31,7 @@ class BostonCrimeTest extends FunSuite with SharedSparkContext {
     result.unpersist()
   }
 }
+
+
 
 
