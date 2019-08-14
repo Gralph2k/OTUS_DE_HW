@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/1.6_divolte-streamsets" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/14_Kafka/cp-demo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/14_Kafka/cp-docker-images" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/15_Confluent/cp-demo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/7_ImportTools/vogel" vcs="Git" />
+  </component>
+</project>
