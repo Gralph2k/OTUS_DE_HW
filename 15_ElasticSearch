@@ -1,0 +1,131 @@
+1. Запустить KSQL
+cd /Documents/OTUS/DataEnginer/projects/Elasticsearch/cp-demo
+docker-compose exec ksql-cli ksql http://ksql-server:8088
+
+2. Создайте KSQL Stream WIKILANG
+DROP STREAM WIKILANG;
+DROP STREAM WIKILANG_ALL;
+CREATE STREAM WIKILANG_ALL
+  (createdat BIGINT,
+   channel VARCHAR,
+   username VARCHAR,
+   wikipage VARCHAR,
+   DIFFURL VARCHAR,
+   ISBOT BOOLEAN
+   )
+  WITH (KAFKA_TOPIC='wikipedia.parsed',
+        VALUE_FORMAT='AVRO',
+        TIMESTAMP='createdat'
+        );
+
+
+CREATE STREAM WIKILANG AS 
+SELECT * FROM WIKILANG_ALL WHERE CHANNEL NOT LIKE '#en.%' AND ISBOT <> true;
+
+3. Мониторинг WIKILANG
+>>>>После 1-2 минут работы откройте Confluent Control Center и сравните пропускную способность топиков WIKILANG и WIKIPEDIANOBOT, какие числа вы видите?
+TOPIC     		 Bytes/sec produced   Bytes/sec consumed
+WIKILANG               719					0
+WIKIPEDIANOBOT 		  1199					1199
+
+Produced выше у WIKIPEDIANOBOT, т.к. он включает все правки, а WIKILANG только национальные. Кроме того схема WIKILANG включает не все поля из wikipedia.parsed.
+Consumed у WIKILANG нулевой, так как его никто не читает.
+
+>>>>В KSQL CLI получите текущую статистику вашего стрима: describe extended wikilang;
+>>>>Приложите полный ответ на предыдущий запрос к ответу на задание.
+ksql> describe extended wikilang;
+
+Name                 : WIKILANG
+Type                 : STREAM
+Key field            : 
+Key format           : STRING
+Timestamp field      : Not set - using <ROWTIME>
+Value format         : AVRO
+Kafka topic          : WIKILANG (partitions: 2, replication: 2)
+
+ Field     | Type                      
+---------------------------------------
+ ROWTIME   | BIGINT           (system) 
+ ROWKEY    | VARCHAR(STRING)  (system) 
+ CREATEDAT | BIGINT                    
+ CHANNEL   | VARCHAR(STRING)           
+ USERNAME  | VARCHAR(STRING)           
+ WIKIPAGE  | VARCHAR(STRING)           
+ DIFFURL   | VARCHAR(STRING)           
+ ISBOT     | BOOLEAN                   
+---------------------------------------
+
+Queries that write into this STREAM
+-----------------------------------
+CSAS_WIKILANG_6 : CREATE STREAM WIKILANG WITH (REPLICAS = 2, PARTITIONS = 2, KAFKA_TOPIC = 'WIKILANG') AS SELECT *
+FROM WIKILANG_ALL WIKILANG_ALL
+WHERE ((NOT (WIKILANG_ALL.CHANNEL LIKE '#en.%')) AND (NOT WIKILANG_ALL.ISBOT));
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Local runtime statistics
+------------------------
+messages-per-sec:      2.66   total-messages:       717     last-message: 2019-08-19T09:36:49.501Z
+
+(Statistics of the local KSQL server interaction with the Kafka topic WIKILANG)
+
+
+
+>>>>В KSQL CLI получите текущую статистику WIKIPEDIANOBOT: describe extended wikipedianobot;
+>>>>Приложите раздел Local runtime statistics к ответу на задание.
+Local runtime statistics
+------------------------
+messages-per-sec:      4.11   total-messages:     17899     last-message: 2019-08-19T09:37:26.389Z
+
+(Statistics of the local KSQL server interaction with the Kafka topic WIKIPEDIANOBOT)
+
+>>>>>Почему для wikipedianobot интерфейс показывает также consumer-* метрики?
+У wikipedianobot есть consumer WIKIPEDIANOBOT-consumer, соответсвенно для него показываются метрики потребления.
+
+
+4. Добавьте данные из стрима WIKILANG в ElasticSearch
+>>>>Добавьте mapping - запустите скрипт set_elasticsearch_mapping_lang.sh
+Определяем схему нового документа в ElasticSearch, указываем как он будет храниться и индексироваться.
+Меппинг позволяет делать тонкую настройку хранения данных и их обработку.
+>>>>Добавьте Kafka Connect - запустите submit_elastic_sink_lang_config.sh
+Включаем перекачку (sink) данных из kafka в elasticSearch. Указываем использование шаблона индекса WIKILANG:wikilang. 
+>>>>Добавьте index-pattern - Kibana UI -> Management -> Index patterns -> Create Index Pattern -> Index name or pattern: wikilang -> кнопка Create
+Создаем шаблон индекса, это позволяет определить индекс(ы), которые мы планируем исследовать в Kibana.  
+
+5. Создайте отчет "Топ10 национальных разделов" на базе индекса wikilang
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match_all": {}
+        },
+        {
+          "range": {
+            "CREATEDAT": {
+              "gte": 1566212108759,
+              "lte": 1566213008759,
+              "format": "epoch_millis"
+            }
+          }
+        }
+      ],
+      "must_not": []
+    }
+  },
+  "_source": {
+    "excludes": []
+  },
+  "aggs": {
+    "2": {
+      "terms": {
+        "field": "CHANNEL.keyword",
+        "size": 10,
+        "order": {
+          "_count": "desc"
+        }
+      }
+    }
+  }
+}
